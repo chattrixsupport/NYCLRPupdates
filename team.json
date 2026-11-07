@@ -1,12 +1,16 @@
 {
   "members": [
     {
-      "discordProfile": "https://discord.com/users/REPLACE_WITH_FIRST_DISCORD_USER_ID",
-      "role": "Project Lead"
+      "id": "1272842004073807916",
+      "name": "Brage",
+      "role": "Project Lead",
+      "avatar": "/default-avatar.svg"
     },
     {
-      "discordProfile": "https://discord.com/users/REPLACE_WITH_SECOND_DISCORD_USER_ID",
-      "role": "Lead Developer"
+      "id": "963116153616605215",
+      "name": "Ishaa",
+      "role": "Lead Developer",
+      "avatar": "/default-avatar.svg"
     }
   ]
 }

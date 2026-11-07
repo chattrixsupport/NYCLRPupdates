@@ -24,6 +24,7 @@ async function startTestServer(t, options = {}) {
     fetchImpl: options.fetchImpl || fetch,
     logger: { error() {} },
     teamConfigPath: options.teamConfigPath,
+    teamAvatarsPath: options.teamAvatarsPath,
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -38,94 +39,95 @@ async function startTestServer(t, options = {}) {
   return { origin, environment };
 }
 
-test("development team loads Discord usernames and avatars from configured profile URLs", async (t) => {
+test("team avatars update when the matching Discord users log in and survive restart", async (t) => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "nyclrp-team-"));
-  const teamConfigPath = path.join(directory, "team.json");
-  await fs.writeFile(
-    teamConfigPath,
-    JSON.stringify({
-      members: [
-        {
-          discordProfile: "https://discord.com/users/111111111111111111",
-          role: "Project Lead",
-        },
-        {
-          discordProfile: "https://discord.com/users/222222222222222222/",
-          role: "Lead Developer",
-        },
-      ],
-    }),
-  );
+  const teamAvatarsPath = path.join(directory, "team-avatars.json");
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
 
-  const apiCalls = [];
+  const profiles = new Map([
+    ["brage-login", {
+      id: "1272842004073807916",
+      username: "brage",
+      global_name: "Brage",
+      avatar: "a_brage_avatar",
+    }],
+    ["ishaa-login", {
+      id: "963116153616605215",
+      username: "ishaa",
+      global_name: "Ishaa",
+      avatar: "ishaa_avatar",
+    }],
+    ["other-login", {
+      id: "123456789012345678",
+      username: "other",
+      global_name: "Other",
+      avatar: "other_avatar",
+    }],
+  ]);
   const fetchImpl = async (url, options = {}) => {
-    apiCalls.push({ url: String(url), options });
-    const userId = String(url).split("/").pop();
-    if (userId === "111111111111111111") {
-      return Response.json({
-        id: userId,
-        username: "projectlead",
-        global_name: "Project Lead",
-        avatar: "a_animated_hash",
-      });
+    if (String(url).endsWith("/oauth2/token")) {
+      const code = new URLSearchParams(options.body).get("code");
+      return Response.json({ access_token: code });
     }
-    if (userId === "222222222222222222") {
-      return Response.json({
-        id: userId,
-        username: "developer",
-        discriminator: "0",
-        avatar: null,
-      });
+    if (String(url).endsWith("/users/@me")) {
+      const token = options.headers.Authorization.replace("Bearer ", "");
+      return Response.json(profiles.get(token));
     }
     throw new Error(`Unexpected Discord API request: ${url}`);
   };
-  const { origin, environment } = await startTestServer(t, {
-    fetchImpl,
-    teamConfigPath,
-  });
-  environment.DISCORD_BOT_TOKEN = "private-test-bot-token";
+  const options = { fetchImpl, teamAvatarsPath };
+  const { origin } = await startTestServer(t, options);
 
-  const [teamResponse, homepageResponse] = await Promise.all([
-    fetch(`${origin}/api/team`),
-    fetch(origin),
-  ]);
-  const { members } = await teamResponse.json();
+  async function signIn(code) {
+    const startResponse = await fetch(`${origin}/auth/discord`, { redirect: "manual" });
+    const state = new URL(startResponse.headers.get("location")).searchParams.get("state");
+    const stateCookie = startResponse.headers.get("set-cookie").match(/nyclrp_oauth_state=([^;,]+)/)[1];
+    const callbackUrl = new URL("/auth/discord/callback", origin);
+    callbackUrl.searchParams.set("code", code);
+    callbackUrl.searchParams.set("state", state);
+    const callbackResponse = await fetch(callbackUrl, {
+      headers: { Cookie: `nyclrp_oauth_state=${stateCookie}` },
+      redirect: "manual",
+    });
+    assert.equal(callbackResponse.status, 302);
+    assert.equal(callbackResponse.headers.get("location"), "/?login=success");
+  }
 
-  assert.equal(teamResponse.status, 200);
-  assert.deepEqual(members, [
-    {
-      name: "Project Lead",
-      role: "Project Lead",
-      avatar: "https://cdn.discordapp.com/avatars/111111111111111111/a_animated_hash.gif?size=128",
-    },
-    {
-      name: "developer",
-      role: "Lead Developer",
-      avatar: "https://cdn.discordapp.com/embed/avatars/3.png",
-    },
+  const initialResponse = await fetch(`${origin}/api/team`);
+  assert.equal(initialResponse.status, 200);
+  const initialTeam = await initialResponse.json();
+  assert.deepEqual(initialTeam.members.map(({ name, role, avatar }) => ({ name, role, avatar })), [
+    { name: "Brage", role: "Project Lead", avatar: "/default-avatar.svg" },
+    { name: "Ishaa", role: "Lead Developer", avatar: "/default-avatar.svg" },
   ]);
-  assert.equal(apiCalls.length, 2);
-  assert.ok(
-    apiCalls.every((call) => call.options.headers.Authorization === "Bot private-test-bot-token"),
+
+  await signIn("brage-login");
+  let team = await (await fetch(`${origin}/api/team`)).json();
+  assert.equal(
+    team.members[0].avatar,
+    "https://cdn.discordapp.com/avatars/1272842004073807916/a_brage_avatar.gif?size=128",
+  );
+  assert.equal(team.members[1].avatar, "/default-avatar.svg");
+
+  await signIn("other-login");
+  team = await (await fetch(`${origin}/api/team`)).json();
+  assert.equal(team.members[0].avatar.includes("a_brage_avatar.gif"), true);
+  assert.equal(team.members[1].avatar, "/default-avatar.svg");
+
+  await signIn("ishaa-login");
+  team = await (await fetch(`${origin}/api/team`)).json();
+  assert.equal(team.members[0].avatar.includes("a_brage_avatar.gif"), true);
+  assert.equal(
+    team.members[1].avatar,
+    "https://cdn.discordapp.com/avatars/963116153616605215/ishaa_avatar.png?size=128",
   );
 
-  const cachedResponse = await fetch(`${origin}/api/team`);
-  assert.deepEqual(await cachedResponse.json(), { members });
-  assert.equal(apiCalls.length, 2);
+  const privateCacheResponse = await fetch(`${origin}/team-avatars.json`);
+  assert.equal(privateCacheResponse.status, 404);
 
-  assert.equal(homepageResponse.status, 200);
-  const homepage = await homepageResponse.text();
-  assert.match(homepage, /The NYCLRP Development Team/);
-  assert.match(homepage, /href="#development-team">Development Team<\/a>/);
-});
-
-test("team API requires a bot token and valid Discord profile links", async (t) => {
-  const { origin } = await startTestServer(t);
-
-  const noTokenResponse = await fetch(`${origin}/api/team`);
-  assert.equal(noTokenResponse.status, 503);
-  assert.match((await noTokenResponse.json()).error, /DISCORD_BOT_TOKEN/);
+  const restartedServer = await startTestServer(t, options);
+  const persistedTeam = await (await fetch(`${restartedServer.origin}/api/team`)).json();
+  assert.deepEqual(persistedTeam, { members: team.members });
 });
 
 test("Discord login exchanges the code, reads the profile, and creates a logout-able session", async (t) => {
@@ -189,7 +191,7 @@ test("Discord login exchanges the code, reads the profile, and creates a logout-
     id: "123456789012345678",
     username: "testuser",
     displayName: "Test User",
-    avatarUrl: "https://cdn.discordapp.com/avatars/123456789012345678/avatar_hash.png?size=64",
+    avatarUrl: "https://cdn.discordapp.com/avatars/123456789012345678/avatar_hash.png?size=128",
   });
 
   const invalidLogoutResponse = await fetch(`${origin}/auth/logout`, {

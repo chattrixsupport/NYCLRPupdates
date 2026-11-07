@@ -2,3 +2,5 @@
 .env.*
 !.env.example
 node_modules/
+team-avatars.json
+team-avatars.*.tmp
