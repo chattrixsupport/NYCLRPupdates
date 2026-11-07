@@ -10,6 +10,27 @@ test("hosting port prefers SERVER_PORT and keeps local port fallbacks", () => {
   assert.throws(() => getServerPort({ SERVER_PORT: "invalid" }), /SERVER_PORT or PORT/);
 });
 
+test("development team data includes two role-tagged profiles and a local avatar", async (t) => {
+  const { origin } = await startTestServer(t);
+  const [teamResponse, avatarResponse, homepageResponse] = await Promise.all([
+    fetch(`${origin}/team.json`),
+    fetch(`${origin}/default-avatar.svg`),
+    fetch(origin),
+  ]);
+  const { members } = await teamResponse.json();
+
+  assert.equal(teamResponse.status, 200);
+  assert.equal(members.length, 2);
+  assert.deepEqual(members.map(({ role }) => role), ["Project Lead", "Lead Developer"]);
+  assert.ok(members.every(({ name, avatar }) => name && avatar === "/default-avatar.svg"));
+  assert.equal(avatarResponse.status, 200);
+  assert.match(avatarResponse.headers.get("content-type"), /image\/svg\+xml/);
+  assert.equal(homepageResponse.status, 200);
+  const homepage = await homepageResponse.text();
+  assert.match(homepage, /The NYCLRP Development Team/);
+  assert.match(homepage, /href="#development-team">Development Team<\/a>/);
+});
+
 async function startTestServer(t, options = {}) {
   const environment = {
     DISCORD_CLIENT_ID: "test-client-id",

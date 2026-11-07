@@ -4,6 +4,8 @@ const loginLinks = document.querySelectorAll("[data-login-link]");
 const logoutButtons = document.querySelectorAll("[data-logout]");
 const memberStatus = document.querySelector("[data-member-status]");
 const authStatus = document.querySelector("[data-auth-status]");
+const teamGrid = document.querySelector("[data-team-grid]");
+const teamStatus = document.querySelector("[data-team-status]");
 
 function showAuthStatus(message, kind) {
   if (!authStatus) {
@@ -27,6 +29,70 @@ function setSignedInUser(user) {
     memberStatus.textContent = user ? `Signed in as ${user.displayName || user.username}` : "";
     memberStatus.hidden = !user;
   }
+}
+
+function renderTeam(members) {
+  if (!Array.isArray(members) || members.length !== 2) {
+    throw new Error("The development team must contain exactly two members.");
+  }
+
+  const cards = members.map((member) => {
+    if (
+      !member ||
+      typeof member.name !== "string" ||
+      !member.name.trim() ||
+      typeof member.role !== "string" ||
+      !member.role.trim() ||
+      typeof member.avatar !== "string" ||
+      !member.avatar.trim()
+    ) {
+      throw new Error("Each team member needs a name, role, and avatar.");
+    }
+
+    const card = document.createElement("article");
+    card.className = "team-card";
+
+    const avatar = document.createElement("img");
+    avatar.className = "team-avatar";
+    avatar.src = member.avatar;
+    avatar.alt = `${member.name.trim()} profile`;
+    avatar.width = 94;
+    avatar.height = 94;
+    avatar.addEventListener("error", () => {
+      avatar.src = "/default-avatar.svg";
+    }, { once: true });
+
+    const name = document.createElement("h3");
+    name.className = "team-name";
+    name.textContent = member.name.trim();
+
+    const role = document.createElement("p");
+    role.className = "team-role";
+    role.textContent = member.role.trim();
+
+    card.append(avatar, name, role);
+    return card;
+  });
+
+  teamGrid?.replaceChildren(...cards);
+  if (teamStatus) {
+    teamStatus.hidden = true;
+  }
+}
+
+if (teamGrid && teamStatus) {
+  fetch("/team.json", { cache: "no-cache" })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Team data request failed with status ${response.status}.`);
+      }
+      return response.json();
+    })
+    .then((data) => renderTeam(data.members))
+    .catch((error) => {
+      console.error("Could not load the development team:", error);
+      teamStatus.textContent = "Could not load the development team.";
+    });
 }
 
 menuToggle?.addEventListener("click", function () {

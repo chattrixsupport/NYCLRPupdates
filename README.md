@@ -23,4 +23,6 @@ The app requests only the Discord `identify` scope. It exchanges the authorizati
 
 The server listens on `0.0.0.0` and uses Bot-Hosting's `SERVER_PORT` environment variable. It also supports `PORT` as a fallback and defaults to `3000` for local development. Do not put the Discord client secret in website files or commit it to GitHub.
 
+Edit `team.json` to set the two development team members' names, roles, and avatar image URLs. The default profile names are placeholders; avatars can be local files or Discord CDN image URLs.
+
 The app requests only the Discord `identify` scope. It exchanges the authorization code on the server and fetches the signed-in profile from Discord’s `/users/@me` API. The included session store is in memory, so users will need to sign in again after a server restart.

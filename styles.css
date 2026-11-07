@@ -363,6 +363,90 @@ button.card-login {
   letter-spacing: 0.13em;
 }
 
+.team-section {
+  padding: 48px max(5%, calc((100% - 1120px) / 2)) 55px;
+  border-top: 1px solid var(--line);
+  background: #0d0e10;
+}
+
+.team-heading {
+  margin-bottom: 27px;
+  text-align: center;
+}
+
+.team-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(24px, 3vw, 32px);
+  letter-spacing: -0.035em;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 280px));
+  justify-content: center;
+  gap: 22px;
+}
+
+.team-card {
+  display: flex;
+  min-height: 235px;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px;
+  border: 1px solid #303138;
+  border-radius: 12px;
+  background: #151619;
+  text-align: center;
+}
+
+.team-avatar {
+  width: 94px;
+  height: 94px;
+  margin-bottom: 15px;
+  border: 3px solid #343952;
+  border-radius: 50%;
+  background: #20232b;
+  object-fit: cover;
+}
+
+.team-card:nth-child(2) .team-avatar {
+  border-color: #3a354e;
+  filter: hue-rotate(25deg);
+}
+
+.team-name {
+  margin: 0 0 7px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.team-role {
+  margin: 0;
+  padding: 3px 11px;
+  border: 1px solid #383b61;
+  border-radius: 14px;
+  background: #1d1e2b;
+  color: #a7abff;
+  font-size: 10px;
+}
+
+.team-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.team-status[hidden] {
+  display: none;
+}
+
+.team-grid:empty {
+  display: none;
+}
+
 .community-bar {
   display: flex;
   min-height: 88px;
@@ -550,6 +634,15 @@ button.card-login {
   .hero-location {
     right: 7%;
     bottom: 25px;
+  }
+
+  .team-section {
+    padding: 38px 7% 42px;
+  }
+
+  .team-grid {
+    grid-template-columns: minmax(0, 360px);
+    gap: 14px;
   }
 
   .community-bar {

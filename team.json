@@ -1,0 +1,14 @@
+{
+  "members": [
+    {
+      "name": "Developer One",
+      "role": "Project Lead",
+      "avatar": "/default-avatar.svg"
+    },
+    {
+      "name": "Developer Two",
+      "role": "Lead Developer",
+      "avatar": "/default-avatar.svg"
+    }
+  ]
+}

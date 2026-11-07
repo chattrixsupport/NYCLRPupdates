@@ -12,6 +12,8 @@ const STATIC_FILES = new Map([
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/script.js", ["script.js", "text/javascript; charset=utf-8"]],
+  ["/team.json", ["team.json", "application/json; charset=utf-8"]],
+  ["/default-avatar.svg", ["default-avatar.svg", "image/svg+xml"]],
 ]);
 
 function getOAuthConfig(environment) {
