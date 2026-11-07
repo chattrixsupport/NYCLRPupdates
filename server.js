@@ -12,9 +12,9 @@ const STATIC_FILES = new Map([
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/script.js", ["script.js", "text/javascript; charset=utf-8"]],
-  ["/team.json", ["team.json", "application/json; charset=utf-8"]],
   ["/default-avatar.svg", ["default-avatar.svg", "image/svg+xml"]],
 ]);
+const TEAM_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function getOAuthConfig(environment) {
   const { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI } = environment;
@@ -130,8 +130,49 @@ function getServerPort(environment) {
   return port;
 }
 
-function createServer({ environment = process.env, fetchImpl = fetch, logger = console } = {}) {
+function getDiscordUserId(profileUrl) {
+  let url;
+  try {
+    url = new URL(profileUrl);
+  } catch {
+    throw new Error("Add each developer's Discord profile URL to team.json.");
+  }
+
+  const match = url.pathname.match(/^\/users\/(\d+)\/?$/);
+  if (
+    url.protocol !== "https:" ||
+    !["discord.com", "www.discord.com"].includes(url.hostname) ||
+    url.search ||
+    url.hash ||
+    !match
+  ) {
+    throw new Error("Each developer needs a Discord profile URL like https://discord.com/users/123456789012345678.");
+  }
+
+  return match[1];
+}
+
+function getDiscordAvatarUrl(user) {
+  if (typeof user.avatar === "string" && /^[a-zA-Z0-9_]+$/.test(user.avatar)) {
+    const format = user.avatar.startsWith("a_") ? "gif" : "png";
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${format}?size=128`;
+  }
+
+  const defaultAvatarIndex =
+    user.discriminator === "0"
+      ? Number((BigInt(user.id) >> 22n) % 6n)
+      : Number(user.discriminator) % 5;
+  return `https://cdn.discordapp.com/embed/avatars/${defaultAvatarIndex}.png`;
+}
+
+function createServer({
+  environment = process.env,
+  fetchImpl = fetch,
+  logger = console,
+  teamConfigPath = path.join(__dirname, "team.json"),
+} = {}) {
   const sessions = new Map();
+  let teamCache = { expiresAt: 0, members: null };
   const publicDirectory = __dirname;
 
   return http.createServer(async (request, response) => {
@@ -149,6 +190,80 @@ function createServer({ environment = process.env, fetchImpl = fetch, logger = c
     }
 
     const cookies = parseCookies(request.headers.cookie);
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/team") {
+      if (teamCache.members && teamCache.expiresAt > Date.now()) {
+        sendJson(response, 200, { members: teamCache.members });
+        return;
+      }
+
+      if (!environment.DISCORD_BOT_TOKEN) {
+        sendJson(response, 503, {
+          error: "Set DISCORD_BOT_TOKEN and both Discord profile URLs to load the development team.",
+        });
+        return;
+      }
+
+      try {
+        const teamConfig = JSON.parse(
+          await fs.promises.readFile(teamConfigPath, "utf8"),
+        );
+        if (!Array.isArray(teamConfig.members) || teamConfig.members.length !== 2) {
+          throw new Error("team.json must contain exactly two team members.");
+        }
+
+        const discordIds = teamConfig.members.map((member) =>
+          getDiscordUserId(member.discordProfile),
+        );
+        if (new Set(discordIds).size !== discordIds.length) {
+          throw new Error("Each team member must have a different Discord profile URL.");
+        }
+
+        const members = await Promise.all(
+          teamConfig.members.map(async (member, index) => {
+            if (typeof member.role !== "string" || !member.role.trim()) {
+              throw new Error("Each team member needs a role in team.json.");
+            }
+
+            const userResponse = await fetchImpl(
+              `https://discord.com/api/v10/users/${discordIds[index]}`,
+              {
+                headers: { Authorization: `Bot ${environment.DISCORD_BOT_TOKEN}` },
+                signal: AbortSignal.timeout(10000),
+              },
+            );
+            if (!userResponse.ok) {
+              throw new Error(`Discord profile lookup failed with status ${userResponse.status}.`);
+            }
+
+            const user = await userResponse.json();
+            if (
+              user.id !== discordIds[index] ||
+              typeof user.username !== "string" ||
+              !/^\d+$/.test(user.id)
+            ) {
+              throw new Error("Discord returned an invalid team profile.");
+            }
+
+            return {
+              name:
+                typeof user.global_name === "string" && user.global_name.trim()
+                  ? user.global_name
+                  : user.username,
+              role: member.role.trim(),
+              avatar: getDiscordAvatarUrl(user),
+            };
+          }),
+        );
+
+        teamCache = { expiresAt: Date.now() + TEAM_CACHE_TTL_MS, members };
+        sendJson(response, 200, { members });
+      } catch (error) {
+        logger.error("Could not load development team from Discord:", error);
+        sendJson(response, 502, { error: "Could not load the development team from Discord." });
+      }
+      return;
+    }
 
     if (request.method === "GET" && requestUrl.pathname === "/auth/discord") {
       let config;

@@ -23,6 +23,6 @@ The app requests only the Discord `identify` scope. It exchanges the authorizati
 
 The server listens on `0.0.0.0` and uses Bot-Hosting's `SERVER_PORT` environment variable. It also supports `PORT` as a fallback and defaults to `3000` for local development. Do not put the Discord client secret in website files or commit it to GitHub.
 
-Edit `team.json` to set the two development team members' names, roles, and avatar image URLs. The default profile names are placeholders; avatars can be local files or Discord CDN image URLs.
+The development team is loaded from Discord's API. In `team.json`, replace each `discordProfile` value with that member's profile URL (`https://discord.com/users/USER_ID`); the numeric user ID comes from the Discord profile's **Copy User ID** action with Developer Mode enabled. Keep the two roles or edit them as needed. In the Discord Developer Portal, create/add a bot under the application's **Bot** page and copy its token. Add it as `DISCORD_BOT_TOKEN` in Bot-Hosting's secret environment settings. The server uses the bot token to fetch Discord usernames and profile avatars; it is never sent to website visitors. Do not put a real token in `team.json`, `.env.example`, or GitHub. Restart the deployment after setting the token.
 
 The app requests only the Discord `identify` scope. It exchanges the authorization code on the server and fetches the signed-in profile from Discord’s `/users/@me` API. The included session store is in memory, so users will need to sign in again after a server restart.

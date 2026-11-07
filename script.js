@@ -81,17 +81,19 @@ function renderTeam(members) {
 }
 
 if (teamGrid && teamStatus) {
-  fetch("/team.json", { cache: "no-cache" })
+  fetch("/api/team", { cache: "no-cache" })
     .then((response) => {
       if (!response.ok) {
-        throw new Error(`Team data request failed with status ${response.status}.`);
+        return response.json().then(({ error }) => {
+          throw new Error(error || `Team data request failed with status ${response.status}.`);
+        });
       }
       return response.json();
     })
     .then((data) => renderTeam(data.members))
     .catch((error) => {
       console.error("Could not load the development team:", error);
-      teamStatus.textContent = "Could not load the development team.";
+      teamStatus.textContent = error.message || "Could not load the development team.";
     });
 }
 

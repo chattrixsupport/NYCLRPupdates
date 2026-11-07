@@ -1,14 +1,12 @@
 {
   "members": [
     {
-      "name": "Developer One",
-      "role": "Project Lead",
-      "avatar": "/default-avatar.svg"
+      "discordProfile": "https://discord.com/users/REPLACE_WITH_FIRST_DISCORD_USER_ID",
+      "role": "Project Lead"
     },
     {
-      "name": "Developer Two",
-      "role": "Lead Developer",
-      "avatar": "/default-avatar.svg"
+      "discordProfile": "https://discord.com/users/REPLACE_WITH_SECOND_DISCORD_USER_ID",
+      "role": "Lead Developer"
     }
   ]
 }
