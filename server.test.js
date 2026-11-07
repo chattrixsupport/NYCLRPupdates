@@ -1,7 +1,14 @@
 const assert = require("node:assert/strict");
 const { once } = require("node:events");
 const test = require("node:test");
-const { createServer } = require("./server");
+const { createServer, getServerPort } = require("./server");
+
+test("hosting port prefers SERVER_PORT and keeps local port fallbacks", () => {
+  assert.equal(getServerPort({ SERVER_PORT: "4567", PORT: "3000" }), 4567);
+  assert.equal(getServerPort({ PORT: "3000" }), 3000);
+  assert.equal(getServerPort({}), 3000);
+  assert.throws(() => getServerPort({ SERVER_PORT: "invalid" }), /SERVER_PORT or PORT/);
+});
 
 async function startTestServer(t, options = {}) {
   const environment = {

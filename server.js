@@ -120,6 +120,14 @@ function loadEnvironmentFile() {
   }
 }
 
+function getServerPort(environment) {
+  const port = Number(environment.SERVER_PORT || environment.PORT || 3000);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("SERVER_PORT or PORT must be an integer between 1 and 65535.");
+  }
+  return port;
+}
+
 function createServer({ environment = process.env, fetchImpl = fetch, logger = console } = {}) {
   const sessions = new Map();
   const publicDirectory = __dirname;
@@ -318,15 +326,11 @@ function createServer({ environment = process.env, fetchImpl = fetch, logger = c
 
 if (require.main === module) {
   loadEnvironmentFile();
-  const port = Number(process.env.PORT || 3000);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error("PORT must be an integer between 1 and 65535.");
-  }
-
+  const port = getServerPort(process.env);
   const server = createServer();
-  server.listen(port, () => {
-    console.log(`NYC Lake Roleplay is available at http://localhost:${port}`);
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`NYC Lake Roleplay is listening on 0.0.0.0:${port}`);
   });
 }
 
-module.exports = { createServer, getOAuthConfig, loadEnvironmentFile };
+module.exports = { createServer, getOAuthConfig, getServerPort, loadEnvironmentFile };
