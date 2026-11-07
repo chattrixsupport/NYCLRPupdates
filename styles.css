@@ -499,46 +499,51 @@ button.card-login {
   margin-top: 26px;
 }
 
-.content-page .roleplay-grid {
+.roleplay-guide {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  max-width: 760px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.content-page .role-card {
-  min-height: 145px;
+.guide-section {
+  display: flex;
+  min-height: 142px;
+  align-items: flex-start;
+  gap: 15px;
   padding: 20px;
   border: 1px solid #303138;
   border-radius: 12px;
-  background: #151619;
+  background:
+    radial-gradient(ellipse at 100% 0, rgba(56, 106, 104, 0.08), transparent 55%),
+    #151619;
 }
 
-.content-page .role-card h2 {
-  margin: 0;
-  font-size: 15px;
-}
-
-.content-page .role-icon {
+.guide-number {
   display: grid;
-  width: 36px;
-  height: 36px;
-  margin-bottom: 15px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
   place-items: center;
-  border-radius: 8px;
-  background: #25283a;
+  border: 1px solid #353850;
+  border-radius: 9px;
+  background: #222431;
   color: #a7abff;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
 }
 
-.content-page .fire-icon {
-  background: #39291f;
-  color: #f0b37b;
+.guide-section h2 {
+  margin: 1px 0 8px;
+  font-size: 15px;
+  letter-spacing: -0.02em;
 }
 
-.content-page .civilian-icon {
-  background: #23322a;
-  color: #a2d0ad;
+.guide-section p {
+  margin: 0;
+  color: #b6b8c0;
+  font-size: 12px;
+  line-height: 1.65;
 }
 
 .community-page-inner {
@@ -752,21 +757,13 @@ button.card-login {
     padding: 55px 7%;
   }
 
-  .content-page .roleplay-grid {
+  .roleplay-guide {
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .content-page .role-card {
-    display: flex;
+  .guide-section {
     min-height: 0;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .content-page .role-icon {
-    flex: 0 0 auto;
-    margin: 0;
   }
 
   .team-grid {

@@ -134,9 +134,9 @@ test("team avatars update when the matching Discord users log in and survive res
   assert.deepEqual(persistedTeam, { members: team.members });
 
   const homepage = await (await fetch(`${restartedServer.origin}/`)).text();
-  assert.doesNotMatch(homepage, /data-team-grid|Community links and updates|Law enforcement/);
+  assert.doesNotMatch(homepage, /data-team-grid|Community links and updates|Ways to Roleplay/);
   const pages = [
-    ["roleplay.html", /Roleplay in New York City/, /href="roleplay\.html" aria-current="page">Roleplay<\/a>/],
+    ["roleplay.html", /Ways to Roleplay/, /href="roleplay\.html" aria-current="page">Roleplay<\/a>/],
     ["development-team.html", /The NYCLRP Development Team/, /href="development-team\.html" aria-current="page">Development Team<\/a>/],
     ["community.html", /class="card-label">COMMUNITY/, /href="community\.html" aria-current="page">Community<\/a>/],
   ];
@@ -157,7 +157,12 @@ test("team avatars update when the matching Discord users log in and survive res
   assert.match(communityPage, /href="https:\/\/discord\.gg\/nyclrp"/);
 
   const teamPage = await (await fetch(`${restartedServer.origin}/development-team.html`)).text();
-  assert.doesNotMatch(teamPage, /Community links and updates|Roleplay in New York City/);
+  assert.doesNotMatch(teamPage, /Community links and updates|Ways to Roleplay/);
+  const roleplayPage = await (await fetch(`${restartedServer.origin}/roleplay.html`)).text();
+  for (const section of ["Make a character", "Start a scene", "Keep it realistic", "Build the story together"]) {
+    assert.match(roleplayPage, new RegExp(`<h2>${section}<\\/h2>`));
+  }
+  assert.doesNotMatch(roleplayPage, /role-card|Play ER:LC|https:\/\/erlc\.gg\/join\/nyclrp/);
 });
 
 test("Discord login exchanges the code, reads the profile, and creates a logout-able session", async (t) => {
