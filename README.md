@@ -23,6 +23,6 @@ The app requests only the Discord `identify` scope. It exchanges the authorizati
 
 The server listens on `0.0.0.0` and uses Bot-Hosting's `SERVER_PORT` environment variable. It also supports `PORT` as a fallback and defaults to `3000` for local development. Do not put the Discord client secret in website files or commit it to GitHub.
 
-When a developer signs in with Discord, the server matches their Discord user ID against `team.json`. If the signed-in user is Brage or Ishaa, their Discord profile avatar automatically updates that team card. The avatar cache is saved privately on the server and is not committed to GitHub. Other signed-in users do not change the team profiles. No Discord bot token is required for this feature.
+The development team has its own page at `/development-team.html`. When a developer signs in with Discord, the server matches their Discord user ID against `team.json`. If the signed-in user is Brage or Ishaa, their Discord profile avatar automatically updates that team card. The avatar cache is saved privately on the server and is not committed to GitHub. Other signed-in users do not change the team profiles. No Discord bot token is required for this feature.
 
 The app requests only the Discord `identify` scope. It exchanges the authorization code on the server and fetches the signed-in profile from Discord’s `/users/@me` API. The included session store is in memory, so users will need to sign in again after a server restart.

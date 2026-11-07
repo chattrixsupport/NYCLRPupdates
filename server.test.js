@@ -97,30 +97,34 @@ test("team avatars update when the matching Discord users log in and survive res
   assert.equal(initialResponse.status, 200);
   const initialTeam = await initialResponse.json();
   assert.deepEqual(initialTeam.members.map(({ name, role, avatar }) => ({ name, role, avatar })), [
-    { name: "Brage", role: "Project Lead", avatar: "/default-avatar.svg" },
-    { name: "Ishaa", role: "Lead Developer", avatar: "/default-avatar.svg" },
+    {
+      name: "Ishaaniuniek",
+      role: "Head of Server Development",
+      avatar: "/default-avatar.svg",
+    },
+    { name: "Brage", role: "Senior Developer", avatar: "/default-avatar.svg" },
   ]);
 
   await signIn("brage-login");
   let team = await (await fetch(`${origin}/api/team`)).json();
   assert.equal(
-    team.members[0].avatar,
+    team.members[1].avatar,
     "https://cdn.discordapp.com/avatars/1272842004073807916/a_brage_avatar.gif?size=128",
   );
-  assert.equal(team.members[1].avatar, "/default-avatar.svg");
+  assert.equal(team.members[0].avatar, "/default-avatar.svg");
 
   await signIn("other-login");
   team = await (await fetch(`${origin}/api/team`)).json();
-  assert.equal(team.members[0].avatar.includes("a_brage_avatar.gif"), true);
-  assert.equal(team.members[1].avatar, "/default-avatar.svg");
+  assert.equal(team.members[1].avatar.includes("a_brage_avatar.gif"), true);
+  assert.equal(team.members[0].avatar, "/default-avatar.svg");
 
   await signIn("ishaa-login");
   team = await (await fetch(`${origin}/api/team`)).json();
-  assert.equal(team.members[0].avatar.includes("a_brage_avatar.gif"), true);
   assert.equal(
-    team.members[1].avatar,
+    team.members[0].avatar,
     "https://cdn.discordapp.com/avatars/963116153616605215/ishaa_avatar.png?size=128",
   );
+  assert.equal(team.members[1].avatar.includes("a_brage_avatar.gif"), true);
 
   const privateCacheResponse = await fetch(`${origin}/team-avatars.json`);
   assert.equal(privateCacheResponse.status, 404);
@@ -128,6 +132,15 @@ test("team avatars update when the matching Discord users log in and survive res
   const restartedServer = await startTestServer(t, options);
   const persistedTeam = await (await fetch(`${restartedServer.origin}/api/team`)).json();
   assert.deepEqual(persistedTeam, { members: team.members });
+
+  const homepage = await (await fetch(`${restartedServer.origin}/`)).text();
+  assert.doesNotMatch(homepage, /The NYCLRP Development Team/);
+  assert.match(homepage, /href="development-team\.html">Development Team<\/a>/);
+  const teamPageResponse = await fetch(`${restartedServer.origin}/development-team.html`);
+  assert.equal(teamPageResponse.status, 200);
+  const teamPage = await teamPageResponse.text();
+  assert.match(teamPage, /The NYCLRP Development Team/);
+  assert.doesNotMatch(teamPage, /Community links and updates/);
 });
 
 test("Discord login exchanges the code, reads the profile, and creates a logout-able session", async (t) => {

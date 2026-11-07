@@ -369,6 +369,24 @@ button.card-login {
   background: #0d0e10;
 }
 
+.team-page-main {
+  display: flex;
+  min-height: calc(100vh - 135px);
+}
+
+.team-page-section {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 72px;
+  padding-bottom: 82px;
+}
+
+.team-page-section .team-grid {
+  margin-top: 3px;
+}
+
 .team-heading {
   margin-bottom: 27px;
   text-align: center;
@@ -638,6 +656,11 @@ button.card-login {
 
   .team-section {
     padding: 38px 7% 42px;
+  }
+
+  .team-page-section {
+    padding-top: 55px;
+    padding-bottom: 60px;
   }
 
   .team-grid {
