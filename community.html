@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Community updates for New York City Lake Roleplay."
+    />
+    <meta name="theme-color" content="#101113" />
+    <title>Community | NYC Lake Roleplay</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="New York City Lake Roleplay home">
+        <span class="brand-icon" aria-hidden="true">NY</span>
+        <span>NYC Lake Roleplay</span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">
+        <span class="sr-only">Toggle navigation</span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="main-nav" id="main-nav" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="roleplay.html">Roleplay</a>
+        <a href="development-team.html">Development Team</a>
+        <a href="community.html" aria-current="page">Community</a>
+        <a class="login-button" data-login-link href="/auth/discord">Log in with Discord</a>
+        <button class="login-button" type="button" data-logout hidden>Log out</button>
+      </nav>
+    </header>
+
+    <main class="content-page">
+      <section class="content-page-inner community-page-inner" aria-labelledby="community-title">
+        <p class="eyebrow"><span class="status-dot"></span> NYC LAKE ROLEPLAY</p>
+        <h1 id="community-title">Community</h1>
+        <p class="page-description">Community links and updates will be shared here.</p>
+        <span class="coming-soon"><span class="status-dot"></span> More info soon</span>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="index.html">
+        <span class="brand-icon" aria-hidden="true">NY</span>
+        <span>NYC Lake Roleplay</span>
+      </a>
+      <span>Emergency Response: Liberty County community</span>
+    </footer>
+
+    <p class="auth-status" data-auth-status role="status" hidden></p>
+  </body>
+</html>

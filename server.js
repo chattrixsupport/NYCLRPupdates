@@ -11,7 +11,9 @@ const TEAM_MEMBER_COUNT = 2;
 const STATIC_FILES = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
+  ["/roleplay.html", ["roleplay.html", "text/html; charset=utf-8"]],
   ["/development-team.html", ["development-team.html", "text/html; charset=utf-8"]],
+  ["/community.html", ["community.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/script.js", ["script.js", "text/javascript; charset=utf-8"]],
   ["/default-avatar.svg", ["default-avatar.svg", "image/svg+xml"]],

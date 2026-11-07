@@ -134,13 +134,26 @@ test("team avatars update when the matching Discord users log in and survive res
   assert.deepEqual(persistedTeam, { members: team.members });
 
   const homepage = await (await fetch(`${restartedServer.origin}/`)).text();
-  assert.doesNotMatch(homepage, /The NYCLRP Development Team/);
-  assert.match(homepage, /href="development-team\.html">Development Team<\/a>/);
-  const teamPageResponse = await fetch(`${restartedServer.origin}/development-team.html`);
-  assert.equal(teamPageResponse.status, 200);
-  const teamPage = await teamPageResponse.text();
-  assert.match(teamPage, /The NYCLRP Development Team/);
-  assert.doesNotMatch(teamPage, /Community links and updates/);
+  assert.doesNotMatch(homepage, /data-team-grid|Community links and updates|Law enforcement/);
+  const pages = [
+    ["roleplay.html", /Roleplay in New York City/, /href="roleplay\.html" aria-current="page">Roleplay<\/a>/],
+    ["development-team.html", /The NYCLRP Development Team/, /href="development-team\.html" aria-current="page">Development Team<\/a>/],
+    ["community.html", />Community<\/h1>/, /href="community\.html" aria-current="page">Community<\/a>/],
+  ];
+  for (const [fileName, pageContent, activeNavigation] of pages) {
+    const pageResponse = await fetch(`${restartedServer.origin}/${fileName}`);
+    assert.equal(pageResponse.status, 200);
+    const page = await pageResponse.text();
+    assert.match(page, pageContent);
+    assert.match(page, activeNavigation);
+    for (const [otherFile] of pages) {
+      if (otherFile !== fileName) {
+        assert.match(page, new RegExp(`href="${otherFile}"`));
+      }
+    }
+  }
+  const teamPage = await (await fetch(`${restartedServer.origin}/development-team.html`)).text();
+  assert.doesNotMatch(teamPage, /Community links and updates|Roleplay in New York City/);
 });
 
 test("Discord login exchanges the code, reads the profile, and creates a logout-able session", async (t) => {
