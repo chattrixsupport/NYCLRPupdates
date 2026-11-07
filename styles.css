@@ -547,11 +547,132 @@ button.card-login {
 }
 
 .community-page-inner {
-  max-width: 340px;
+  max-width: 820px;
 }
 
-.community-page-inner .info-card {
+.community-dashboard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+}
+
+.community-page-inner .info-card,
+.community-stats {
   max-width: none;
+}
+
+.community-stats,
+.community-members {
+  padding: 24px;
+  border: 1px solid #30313a;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 100% 0, rgba(56, 106, 104, 0.1), transparent 50%),
+    linear-gradient(145deg, #1d2029, #15171d 82%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.16);
+}
+
+.community-stats h2,
+.community-members h2 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.025em;
+}
+
+.community-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0 16px;
+}
+
+.community-stat {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid #30323a;
+  border-radius: 10px;
+  background: rgba(10, 11, 14, 0.28);
+}
+
+.community-stat-value {
+  color: #f4f4f6;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.community-stat-label,
+.community-stats-status {
+  color: #9a9da7;
+  font-size: 11px;
+}
+
+.community-stats-status {
+  min-height: 14px;
+  margin: 0;
+}
+
+.community-members {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  margin-top: 18px;
+}
+
+.community-members .card-label {
+  margin-bottom: 7px;
+}
+
+.community-member-status {
+  margin: 8px 0 0;
+  color: #b6b8c0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.community-member-profile {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 11px;
+  margin-left: auto;
+}
+
+.community-member-profile[hidden] {
+  display: none;
+}
+
+.community-member-profile img {
+  border-radius: 50%;
+  background: #20232b;
+  object-fit: cover;
+}
+
+.community-member-profile div {
+  display: grid;
+  gap: 4px;
+}
+
+.community-member-profile strong {
+  font-size: 12px;
+}
+
+.community-member-profile span {
+  color: #8c909b;
+  font-size: 10px;
+}
+
+.community-member-login {
+  width: auto;
+  min-width: 190px;
+  flex: 0 0 auto;
+}
+
+.community-member-login[hidden] {
+  display: none;
 }
 
 .community-bar {
@@ -769,6 +890,26 @@ button.card-login {
   .team-grid {
     grid-template-columns: minmax(0, 360px);
     gap: 14px;
+  }
+
+  .community-dashboard {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .community-members {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 14px;
+  }
+
+  .community-member-profile {
+    margin-left: 0;
+  }
+
+  .community-member-login {
+    width: 100%;
   }
 
   .community-bar {

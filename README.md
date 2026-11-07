@@ -7,7 +7,7 @@
 3. Copy `.env.example` to `.env` and set `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` from the application’s OAuth2 page. Keep the redirect URL as shown above for local development.
 4. Run `npm start` and open `http://localhost:3000`.
 
-The app requests only the Discord `identify` scope. It exchanges the authorization code on the server and fetches the signed-in profile from Discord’s `/users/@me` API. The client secret is never sent to the browser.
+Discord login requests `identify` and `guilds.members.read`. The latter lets the site check whether the signed-in user is in the NYCLRP server; it does not grant access to the full member list. The site fetches the profile and checks membership on the server, and never sends the client secret to the browser.
 
 ## Deploy on Bot-Hosting.net
 
@@ -25,4 +25,4 @@ The server listens on `0.0.0.0` and uses Bot-Hosting's `SERVER_PORT` environment
 
 The navigation pages are separate: Home (`/`), Roleplay (`/roleplay.html`), Development Team (`/development-team.html`), and Community (`/community.html`). The development team names and roles are configured in `team.json`. When Brage or Ishaa signs in with Discord, their profile avatar updates their team card; the avatar cache is saved privately on the server. No Discord bot token is required for this feature.
 
-The app requests only the Discord `identify` scope. It exchanges the authorization code on the server and fetches the signed-in profile from Discord’s `/users/@me` API. The included session store is in memory, so users will need to sign in again after a server restart.
+The Community page loads approximate member and online counts from Discord's public `nyclrp` invite data and caches them for five minutes. The included session store is in memory, so users will need to sign in again after a server restart.

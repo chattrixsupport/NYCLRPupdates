@@ -3,6 +3,14 @@ const mainNav = document.querySelector(".main-nav");
 const loginLinks = document.querySelectorAll("[data-login-link]");
 const logoutButtons = document.querySelectorAll("[data-logout]");
 const memberStatus = document.querySelector("[data-member-status]");
+const communityMembers = document.querySelector("[data-community-members]");
+const communityOnline = document.querySelector("[data-community-online]");
+const communityStats = document.querySelector(".community-stats");
+const communityStatsStatus = document.querySelector("[data-community-stats-status]");
+const communityMemberStatus = document.querySelector("[data-community-member-status]");
+const communityMemberProfile = document.querySelector("[data-community-member-profile]");
+const communityMemberAvatar = document.querySelector("[data-community-member-avatar]");
+const communityMemberName = document.querySelector("[data-community-member-name]");
 const authStatus = document.querySelector("[data-auth-status]");
 const teamGrid = document.querySelector("[data-team-grid]");
 const teamStatus = document.querySelector("[data-team-status]");
@@ -29,6 +37,66 @@ function setSignedInUser(user) {
     memberStatus.textContent = user ? `Signed in as ${user.displayName || user.username}` : "";
     memberStatus.hidden = !user;
   }
+
+  if (communityMemberStatus) {
+    if (!user) {
+      communityMemberStatus.textContent =
+        "Log in with Discord to check whether your account is in the server.";
+      communityMemberProfile.hidden = true;
+      return;
+    }
+
+    if (user.isCommunityMember === true) {
+      communityMemberStatus.textContent = "Your Discord account is a member of NYCLRP.";
+      communityMemberName.textContent = user.displayName || user.username;
+      communityMemberAvatar.src = user.avatarUrl;
+      communityMemberProfile.hidden = false;
+    } else if (user.isCommunityMember === false) {
+      communityMemberStatus.textContent =
+        "This Discord account is not in the server yet. Join above, then sign in again.";
+      communityMemberProfile.hidden = true;
+    } else {
+      communityMemberStatus.textContent = "Could not verify this account’s server membership.";
+      communityMemberProfile.hidden = true;
+    }
+  }
+}
+
+if (communityMemberAvatar) {
+  communityMemberAvatar.addEventListener("error", () => {
+    communityMemberAvatar.src = "/default-avatar.svg";
+  });
+}
+
+if (communityMembers && communityOnline && communityStats && communityStatsStatus) {
+  fetch("/api/community", { cache: "no-cache" })
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then(({ error }) => {
+          throw new Error(error || `Community stats request failed with status ${response.status}.`);
+        });
+      }
+      return response.json();
+    })
+    .then((stats) => {
+      if (
+        !stats ||
+        typeof stats.name !== "string" ||
+        !Number.isSafeInteger(stats.memberCount) ||
+        !Number.isSafeInteger(stats.onlineCount)
+      ) {
+        throw new Error("Community stats response is invalid.");
+      }
+      communityMembers.textContent = stats.memberCount.toLocaleString();
+      communityOnline.textContent = stats.onlineCount.toLocaleString();
+      communityStatsStatus.textContent = `${stats.name} · Counts are approximate`;
+      communityStats.setAttribute("aria-busy", "false");
+    })
+    .catch((error) => {
+      console.error("Could not load Discord community stats:", error);
+      communityStatsStatus.textContent = "Server stats are unavailable right now.";
+      communityStats.setAttribute("aria-busy", "false");
+    });
 }
 
 function renderTeam(members) {

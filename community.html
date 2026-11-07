@@ -35,29 +35,73 @@
 
     <main class="content-page community-content">
       <section class="content-page-inner community-page-inner" aria-labelledby="community-title">
-        <div class="info-card">
-          <div class="card-heading">
-            <span class="card-icon" aria-hidden="true">NY</span>
+        <div class="community-dashboard">
+          <div class="info-card">
+            <div class="card-heading">
+              <span class="card-icon" aria-hidden="true">NY</span>
+              <div>
+                <p class="card-label">COMMUNITY</p>
+                <h1 id="community-title">New York City</h1>
+              </div>
+            </div>
+            <div class="card-divider"></div>
+            <dl class="community-details">
+              <div><dt>Game</dt><dd>Emergency Response: Liberty County</dd></div>
+              <div><dt>Platform</dt><dd>Roblox</dd></div>
+              <div><dt>Type</dt><dd>Roleplay</dd></div>
+            </dl>
+            <a
+              class="card-login"
+              href="https://discord.gg/nyclrp"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>Join Discord!</span><span aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          <section class="community-stats" aria-labelledby="community-stats-title" aria-busy="true">
+            <p class="card-label">LIVE SERVER</p>
+            <h2 id="community-stats-title">Server stats</h2>
+            <div class="community-stat-grid">
+              <div class="community-stat">
+                <span class="community-stat-value" data-community-members>—</span>
+                <span class="community-stat-label">Members</span>
+              </div>
+              <div class="community-stat">
+                <span class="community-stat-value" data-community-online>—</span>
+                <span class="community-stat-label">Online</span>
+              </div>
+            </div>
+            <p class="community-stats-status" data-community-stats-status role="status" aria-live="polite">
+              Loading server stats…
+            </p>
+          </section>
+        </div>
+
+        <section class="community-members" aria-labelledby="community-members-title">
+          <div>
+            <p class="card-label">DISCORD MEMBERSHIP</p>
+            <h2 id="community-members-title">Check your membership</h2>
+            <p class="community-member-status" data-community-member-status role="status" aria-live="polite">
+              Log in with Discord to check whether your account is in the server.
+            </p>
+          </div>
+          <div class="community-member-profile" data-community-member-profile hidden>
+            <img data-community-member-avatar src="/default-avatar.svg" alt="" width="44" height="44" />
             <div>
-              <p class="card-label">COMMUNITY</p>
-              <h1 id="community-title">New York City</h1>
+              <strong data-community-member-name></strong>
+              <span>NYCLRP member</span>
             </div>
           </div>
-          <div class="card-divider"></div>
-          <dl class="community-details">
-            <div><dt>Game</dt><dd>Emergency Response: Liberty County</dd></div>
-            <div><dt>Platform</dt><dd>Roblox</dd></div>
-            <div><dt>Type</dt><dd>Roleplay</dd></div>
-          </dl>
           <a
-            class="card-login"
-            href="https://discord.gg/nyclrp"
-            target="_blank"
-            rel="noopener noreferrer"
+            class="card-login community-member-login"
+            data-login-link
+            href="/auth/discord?returnTo=%2Fcommunity.html"
           >
-            <span>Join Discord!</span><span aria-hidden="true">→</span>
+            <span>Log in with Discord</span><span aria-hidden="true">→</span>
           </a>
-        </div>
+        </section>
       </section>
     </main>
 

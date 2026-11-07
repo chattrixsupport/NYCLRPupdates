@@ -8,6 +8,10 @@ const STATE_COOKIE = "nyclrp_oauth_state";
 const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 const SESSION_MAX_AGE_SECONDS = SESSION_LIFETIME_MS / 1000;
 const TEAM_MEMBER_COUNT = 2;
+const COMMUNITY_INVITE_CODE = "nyclrp";
+const COMMUNITY_GUILD_ID = "1475908093266100365";
+const COMMUNITY_STATS_CACHE_TTL_MS = 5 * 60 * 1000;
+const OAUTH_STATE_LIFETIME_MS = 10 * 60 * 1000;
 const STATIC_FILES = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
@@ -168,10 +172,14 @@ function createServer({
   teamAvatarsPath = path.join(__dirname, "team-avatars.json"),
 } = {}) {
   const sessions = new Map();
+  const oauthStates = new Map();
   const teamAvatars = new Map();
   let teamAvatarsLoaded = false;
   let teamAvatarsLoadPromise;
   let teamAvatarWriteQueue = Promise.resolve();
+  let communityStatsCache;
+  let communityStatsExpiresAt = 0;
+  let communityStatsPromise;
   const publicDirectory = __dirname;
 
   async function loadTeamConfig() {
@@ -257,6 +265,49 @@ function createServer({
     return teamAvatarWriteQueue;
   }
 
+  async function loadCommunityStats() {
+    if (communityStatsCache && communityStatsExpiresAt > Date.now()) {
+      return communityStatsCache;
+    }
+    if (communityStatsPromise) {
+      return communityStatsPromise;
+    }
+
+    communityStatsPromise = (async () => {
+      const response = await fetchImpl(
+        `https://discord.com/api/v10/invites/${COMMUNITY_INVITE_CODE}?with_counts=true`,
+      );
+      if (!response.ok) {
+        throw new Error(`Discord community stats request failed with status ${response.status}.`);
+      }
+
+      const invite = await response.json();
+      if (
+        !invite ||
+        invite.guild?.id !== COMMUNITY_GUILD_ID ||
+        typeof invite.guild.name !== "string" ||
+        !Number.isSafeInteger(invite.approximate_member_count) ||
+        invite.approximate_member_count < 0 ||
+        !Number.isSafeInteger(invite.approximate_presence_count) ||
+        invite.approximate_presence_count < 0
+      ) {
+        throw new Error("Discord returned invalid community statistics.");
+      }
+
+      communityStatsCache = {
+        name: invite.guild.name,
+        memberCount: invite.approximate_member_count,
+        onlineCount: invite.approximate_presence_count,
+      };
+      communityStatsExpiresAt = Date.now() + COMMUNITY_STATS_CACHE_TTL_MS;
+      return communityStatsCache;
+    })().finally(() => {
+      communityStatsPromise = undefined;
+    });
+
+    return communityStatsPromise;
+  }
+
   return http.createServer(async (request, response) => {
     response.setHeader("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' https://cdn.discordapp.com; style-src 'self'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self' https://discord.com");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -272,6 +323,16 @@ function createServer({
     }
 
     const cookies = parseCookies(request.headers.cookie);
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/community") {
+      try {
+        sendJson(response, 200, await loadCommunityStats());
+      } catch (error) {
+        logger.error("Could not load Discord community statistics:", error);
+        sendJson(response, 502, { error: "Could not load Discord community statistics." });
+      }
+      return;
+    }
 
     if (request.method === "GET" && requestUrl.pathname === "/api/team") {
       try {
@@ -302,12 +363,26 @@ function createServer({
       }
 
       const state = crypto.randomBytes(32).toString("hex");
+      const now = Date.now();
+      for (const [savedState, savedRequest] of oauthStates) {
+        if (savedRequest.expiresAt <= now) {
+          oauthStates.delete(savedState);
+        }
+      }
+      const returnTo =
+        requestUrl.searchParams.get("returnTo") === "/community.html"
+          ? "/community.html"
+          : "/";
+      oauthStates.set(state, {
+        returnTo,
+        expiresAt: now + OAUTH_STATE_LIFETIME_MS,
+      });
       const authorizeUrl = new URL("https://discord.com/oauth2/authorize");
       authorizeUrl.search = new URLSearchParams({
         client_id: config.clientId,
         response_type: "code",
         redirect_uri: config.redirectUri,
-        scope: "identify",
+        scope: "identify guilds.members.read",
         state,
       }).toString();
 
@@ -328,15 +403,26 @@ function createServer({
       }
 
       const clearStateCookie = clearCookie(STATE_COOKIE, config.secureCookies);
+      const state = requestUrl.searchParams.get("state");
+      const pendingState = oauthStates.get(state);
+      if (pendingState) {
+        oauthStates.delete(state);
+      }
+      const returnTo =
+        pendingState && pendingState.expiresAt > Date.now() ? pendingState.returnTo : "/";
       if (requestUrl.searchParams.has("error")) {
-        redirect(response, "/?login=cancelled", [clearStateCookie]);
+        redirect(response, `${returnTo}?login=cancelled`, [clearStateCookie]);
         return;
       }
 
-      const state = requestUrl.searchParams.get("state");
       const code = requestUrl.searchParams.get("code");
-      if (!safeEqual(state, cookies[STATE_COOKIE]) || !code) {
-        redirect(response, "/?login=failed", [clearStateCookie]);
+      if (
+        !safeEqual(state, cookies[STATE_COOKIE]) ||
+        !pendingState ||
+        pendingState.expiresAt <= Date.now() ||
+        !code
+      ) {
+        redirect(response, `${returnTo}?login=failed`, [clearStateCookie]);
         return;
       }
 
@@ -377,6 +463,24 @@ function createServer({
           throw new Error("Discord returned an invalid user profile.");
         }
 
+        const membershipUrl =
+          `https://discord.com/api/v10/users/@me/guilds/${COMMUNITY_GUILD_ID}/member`;
+        const membershipResponse = await fetchImpl(membershipUrl, {
+          headers: { Authorization: ["Bearer", tokenPayload.access_token].join(" ") },
+        });
+        if (!membershipResponse.ok && membershipResponse.status !== 403) {
+          throw new Error(
+            `Discord community membership lookup failed with status ${membershipResponse.status}.`,
+          );
+        }
+        if (membershipResponse.ok) {
+          const membership = await membershipResponse.json();
+          if (!membership || typeof membership !== "object" || Array.isArray(membership)) {
+            throw new Error("Discord returned invalid community membership data.");
+          }
+        }
+        const isCommunityMember = membershipResponse.ok;
+
         const avatarUrl = getDiscordAvatarUrl(discordUser);
         try {
           const teamMembers = await loadTeamConfig();
@@ -398,10 +502,11 @@ function createServer({
                 ? discordUser.global_name
                 : discordUser.username,
             avatarUrl,
+            isCommunityMember,
           },
         });
 
-        redirect(response, "/?login=success", [
+        redirect(response, `${returnTo}?login=success`, [
           clearStateCookie,
           cookie(SESSION_COOKIE, sessionId, SESSION_MAX_AGE_SECONDS, config.secureCookies),
         ]);

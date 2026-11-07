@@ -69,6 +69,9 @@ test("team avatars update when the matching Discord users log in and survive res
       const code = new URLSearchParams(options.body).get("code");
       return Response.json({ access_token: code });
     }
+    if (String(url).endsWith("/guilds/1475908093266100365/member")) {
+      return Response.json({ roles: [] });
+    }
     if (String(url).endsWith("/users/@me")) {
       const token = options.headers.Authorization.replace("Bearer ", "");
       return Response.json(profiles.get(token));
@@ -155,6 +158,10 @@ test("team avatars update when the matching Discord users log in and survive res
   const communityPage = await (await fetch(`${restartedServer.origin}/community.html`)).text();
   assert.match(communityPage, /<span>Join Discord!<\/span>/);
   assert.match(communityPage, /href="https:\/\/discord\.gg\/nyclrp"/);
+  assert.match(communityPage, /data-community-members/);
+  assert.match(communityPage, /data-community-online/);
+  assert.match(communityPage, /data-community-member-profile/);
+  assert.match(communityPage, /returnTo=%2Fcommunity\.html/);
 
   const teamPage = await (await fetch(`${restartedServer.origin}/development-team.html`)).text();
   assert.doesNotMatch(teamPage, /Community links and updates|Ways to Roleplay/);
@@ -165,12 +172,56 @@ test("team avatars update when the matching Discord users log in and survive res
   assert.doesNotMatch(roleplayPage, /role-card|Play ER:LC|https:\/\/erlc\.gg\/join\/nyclrp/);
 });
 
+test("community stats load from Discord and are cached", async (t) => {
+  let discordRequests = 0;
+  const { origin } = await startTestServer(t, {
+    fetchImpl: async (url) => {
+      discordRequests += 1;
+      assert.equal(
+        String(url),
+        "https://discord.com/api/v10/invites/nyclrp?with_counts=true",
+      );
+      return Response.json({
+        guild: { id: "1475908093266100365", name: "New York City Lake Roleplay" },
+        approximate_member_count: 2595,
+        approximate_presence_count: 409,
+      });
+    },
+  });
+
+  const firstResponse = await fetch(`${origin}/api/community`);
+  assert.equal(firstResponse.status, 200);
+  assert.deepEqual(await firstResponse.json(), {
+    name: "New York City Lake Roleplay",
+    memberCount: 2595,
+    onlineCount: 409,
+  });
+  const cachedResponse = await fetch(`${origin}/api/community`);
+  assert.equal(cachedResponse.status, 200);
+  assert.equal(discordRequests, 1);
+});
+
+test("community stats report Discord API failures instead of returning fake counts", async (t) => {
+  const { origin } = await startTestServer(t, {
+    fetchImpl: async () => Response.json({ message: "Unavailable" }, { status: 503 }),
+  });
+
+  const response = await fetch(`${origin}/api/community`);
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), {
+    error: "Could not load Discord community statistics.",
+  });
+});
+
 test("Discord login exchanges the code, reads the profile, and creates a logout-able session", async (t) => {
   const apiCalls = [];
   const fetchImpl = async (url, options = {}) => {
     apiCalls.push({ url: String(url), options });
     if (String(url).endsWith("/oauth2/token")) {
       return Response.json({ access_token: "test-access-token" });
+    }
+    if (String(url).endsWith("/guilds/1475908093266100365/member")) {
+      return Response.json({ roles: [] });
     }
     if (String(url).endsWith("/users/@me")) {
       return Response.json({
@@ -184,13 +235,16 @@ test("Discord login exchanges the code, reads the profile, and creates a logout-
   };
   const { origin, environment } = await startTestServer(t, { fetchImpl });
 
-  const startResponse = await fetch(`${origin}/auth/discord`, { redirect: "manual" });
+  const startResponse = await fetch(
+    `${origin}/auth/discord?returnTo=%2Fcommunity.html`,
+    { redirect: "manual" },
+  );
   assert.equal(startResponse.status, 302);
   const authorizationUrl = new URL(startResponse.headers.get("location"));
   const stateCookie = startResponse.headers.get("set-cookie").match(/nyclrp_oauth_state=([^;,]+)/)[1];
   assert.equal(authorizationUrl.origin, "https://discord.com");
   assert.equal(authorizationUrl.searchParams.get("client_id"), environment.DISCORD_CLIENT_ID);
-  assert.equal(authorizationUrl.searchParams.get("scope"), "identify");
+  assert.equal(authorizationUrl.searchParams.get("scope"), "identify guilds.members.read");
   assert.equal(authorizationUrl.searchParams.get("state"), stateCookie);
 
   const callbackUrl = new URL("/auth/discord/callback", origin);
@@ -202,12 +256,12 @@ test("Discord login exchanges the code, reads the profile, and creates a logout-
   });
 
   assert.equal(callbackResponse.status, 302);
-  assert.equal(callbackResponse.headers.get("location"), "/?login=success");
+  assert.equal(callbackResponse.headers.get("location"), "/community.html?login=success");
   const cookies = callbackResponse.headers.get("set-cookie");
   const sessionId = cookies.match(/nyclrp_session=([a-f0-9]+)/)[1];
   assert.match(cookies, /HttpOnly/);
   assert.match(cookies, /SameSite=Lax/);
-  assert.equal(apiCalls.length, 2);
+  assert.equal(apiCalls.length, 3);
 
   const tokenRequest = apiCalls[0];
   assert.equal(tokenRequest.options.method, "POST");
@@ -216,6 +270,11 @@ test("Discord login exchanges the code, reads the profile, and creates a logout-
   assert.equal(tokenBody.get("client_secret"), environment.DISCORD_CLIENT_SECRET);
   assert.equal(tokenBody.get("code"), "test-authorization-code");
   assert.equal(tokenBody.get("redirect_uri"), environment.DISCORD_REDIRECT_URI);
+  assert.equal(
+    apiCalls[2].url,
+    "https://discord.com/api/v10/users/@me/guilds/1475908093266100365/member",
+  );
+  assert.equal(apiCalls[2].options.headers.Authorization, `Bearer ${"test-access-token"}`);
   assert.equal(apiCalls[1].options.headers.Authorization, "Bearer test-access-token");
 
   const profileResponse = await fetch(`${origin}/api/me`, {
@@ -227,6 +286,7 @@ test("Discord login exchanges the code, reads the profile, and creates a logout-
     username: "testuser",
     displayName: "Test User",
     avatarUrl: "https://cdn.discordapp.com/avatars/123456789012345678/avatar_hash.png?size=128",
+    isCommunityMember: true,
   });
 
   const invalidLogoutResponse = await fetch(`${origin}/auth/logout`, {
@@ -252,6 +312,46 @@ test("Discord login exchanges the code, reads the profile, and creates a logout-
     headers: { Cookie: `nyclrp_session=${sessionId}` },
   });
   assert.deepEqual(await loggedOutResponse.json(), { user: null });
+});
+
+test("Discord login marks accounts outside the community as non-members", async (t) => {
+  const fetchImpl = async (url) => {
+    if (String(url).endsWith("/oauth2/token")) {
+      return Response.json({ access_token: "non-member-token" });
+    }
+    if (String(url).endsWith("/users/@me")) {
+      return Response.json({ id: "123456789012345678", username: "visitor" });
+    }
+    if (String(url).endsWith("/guilds/1475908093266100365/member")) {
+      return Response.json({ message: "Missing Access" }, { status: 403 });
+    }
+    throw new Error(`Unexpected Discord API request: ${url}`);
+  };
+  const { origin } = await startTestServer(t, { fetchImpl });
+
+  const startResponse = await fetch(
+    `${origin}/auth/discord?returnTo=%2Fcommunity.html`,
+    { redirect: "manual" },
+  );
+  const state = new URL(startResponse.headers.get("location")).searchParams.get("state");
+  const stateCookie = startResponse.headers.get("set-cookie").match(/nyclrp_oauth_state=([^;,]+)/)[1];
+  const callbackUrl = new URL("/auth/discord/callback", origin);
+  callbackUrl.searchParams.set("code", "visitor-login");
+  callbackUrl.searchParams.set("state", state);
+  const callbackResponse = await fetch(callbackUrl, {
+    headers: { Cookie: `nyclrp_oauth_state=${stateCookie}` },
+    redirect: "manual",
+  });
+
+  assert.equal(callbackResponse.status, 302);
+  assert.equal(callbackResponse.headers.get("location"), "/community.html?login=success");
+  const sessionId = callbackResponse.headers
+    .get("set-cookie")
+    .match(/nyclrp_session=([a-f0-9]+)/)[1];
+  const profileResponse = await fetch(`${origin}/api/me`, {
+    headers: { Cookie: `nyclrp_session=${sessionId}` },
+  });
+  assert.equal((await profileResponse.json()).user.isCommunityMember, false);
 });
 
 test("Discord callback rejects a mismatched OAuth state without calling Discord", async (t) => {
