@@ -281,6 +281,7 @@ dl {
   font-size: 9px;
 }
 
+.card-heading h1,
 .card-heading h2 {
   margin: 0;
   font-size: 17px;
@@ -540,8 +541,12 @@ button.card-login {
   color: #a2d0ad;
 }
 
-.community-page-inner .page-description {
-  margin-bottom: 18px;
+.community-page-inner {
+  max-width: 340px;
+}
+
+.community-page-inner .info-card {
+  max-width: none;
 }
 
 .community-bar {

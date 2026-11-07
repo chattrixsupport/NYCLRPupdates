@@ -138,7 +138,7 @@ test("team avatars update when the matching Discord users log in and survive res
   const pages = [
     ["roleplay.html", /Roleplay in New York City/, /href="roleplay\.html" aria-current="page">Roleplay<\/a>/],
     ["development-team.html", /The NYCLRP Development Team/, /href="development-team\.html" aria-current="page">Development Team<\/a>/],
-    ["community.html", />Community<\/h1>/, /href="community\.html" aria-current="page">Community<\/a>/],
+    ["community.html", /class="card-label">COMMUNITY/, /href="community\.html" aria-current="page">Community<\/a>/],
   ];
   for (const [fileName, pageContent, activeNavigation] of pages) {
     const pageResponse = await fetch(`${restartedServer.origin}/${fileName}`);
@@ -152,6 +152,10 @@ test("team avatars update when the matching Discord users log in and survive res
       }
     }
   }
+  const communityPage = await (await fetch(`${restartedServer.origin}/community.html`)).text();
+  assert.match(communityPage, /<span>Join Discord!<\/span>/);
+  assert.match(communityPage, /href="https:\/\/discord\.gg\/nyclrp"/);
+
   const teamPage = await (await fetch(`${restartedServer.origin}/development-team.html`)).text();
   assert.doesNotMatch(teamPage, /Community links and updates|Roleplay in New York City/);
 });
