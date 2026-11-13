@@ -5,28 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="NYCLRP Staff Dashboard – role ID 1543352116104401016 required"
+      content="NYCLRP Staff Dashboard"
     />
     <meta name="theme-color" content="#101113" />
     <title>Staff Dashboard – NYCLRP</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="script.js" defer></script>
     <script defer>
-      const DASHBOARD_ROLE_ID = "1543352116104401016";
+      const dashboardContent = document.getElementById("dashboard-content");
+      const noRoleMessage = document.getElementById("no-role-message");
+
       fetch("/api/me", { credentials: "same-origin", cache: "no-store" })
         .then((r) => {
-          if (!r.ok) throw new Error("Not signed in");
+          if (!r.ok) {
+            // Not signed in — show dashboard with authorize button
+            dashboardContent.hidden = false;
+            noRoleMessage.hidden = true;
+            return;
+          }
           return r.json();
         })
         .then(({ user }) => {
-          const hasRole =
-            user && user.roles && user.roles.includes(DASHBOARD_ROLE_ID);
-          if (!hasRole) {
-            window.location.replace("/");
+          if (!user) {
+            // No user session — show dashboard with authorize button
+            dashboardContent.hidden = false;
+            noRoleMessage.hidden = true;
+            return;
           }
+          // User is signed in — check for staff role
+          const hasRole = user && user.roles && user.roles.includes("1543352116104401016");
+          if (!hasRole) {
+            dashboardContent.hidden = true;
+            noRoleMessage.hidden = false;
+            return;
+          }
+          noRoleMessage.hidden = true;
+          dashboardContent.hidden = false;
         })
         .catch(() => {
-          window.location.replace("/");
+          // Error checking sign-in — show dashboard with authorize button
+          dashboardContent.hidden = false;
+          noRoleMessage.hidden = true;
         });
     </script>
   </head>
@@ -46,7 +65,7 @@
         <a href="roleplay.html">Roleplay</a>
         <a href="development-team.html">Development Team</a>
         <a href="community.html">Community</a>
-        <a class="login-button nav-dashboard" data-dashboard-link href="/dashboard" aria-current="page">Dashboard</a>
+        <a class="login-button nav-dashboard" data-dashboard-link href="/dashboard" aria-current="page">Staff Dashboard</a>
         <a class="login-button" data-login-link href="/auth/discord">Log in with Discord</a>
         <button class="login-button" type="button" data-logout hidden>Log out</button>
       </nav>
@@ -58,12 +77,16 @@
           <p class="eyebrow"><span class="status-dot"></span> STAFF ONLY</p>
           <h1>Staff Dashboard</h1>
           <p class="hero-description">
-            Manage community settings and staff tools. Access requires Discord role
-            <code>1543352116104401016</code> in the NYCLRP server.
+            Manage community settings and staff tools.
           </p>
-          <div class="hero-actions">
-            <a href="/auth/discord" class="login-button" data-login-link>Log in with Discord</a>
-            <a href="https://discord.gg/nyclrp" class="login-button" target="_blank" rel="noopener noreferrer">Join Discord</a>
+          <div id="dashboard-content">
+            <div class="hero-actions">
+              <a href="/auth/discord" class="login-button" data-login-link>Log in with Discord</a>
+              <a href="https://discord.gg/nyclrp" class="login-button" target="_blank" rel="noopener noreferrer">Join Discord</a>
+            </div>
+          </div>
+          <div id="no-role-message" hidden style="color:#d9534f; margin-top:1rem;">
+            You need to be a staff member to access this site.
           </div>
         </div>
       </section>
