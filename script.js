@@ -1,7 +1,10 @@
+const DASHBOARD_ROLE_ID = "1543352116104401016";
+
 const menuToggle = document.querySelector(".menu-toggle");
 const mainNav = document.querySelector(".main-nav");
 const loginLinks = document.querySelectorAll("[data-login-link]");
 const logoutButtons = document.querySelectorAll("[data-logout]");
+const dashboardLink = document.querySelector("[data-dashboard-link]");
 const memberStatus = document.querySelector("[data-member-status]");
 const communityMembers = document.querySelector("[data-community-members]");
 const communityOnline = document.querySelector("[data-community-online]");
@@ -32,6 +35,11 @@ function setSignedInUser(user) {
   logoutButtons.forEach((button) => {
     button.hidden = !user;
   });
+
+  if (dashboardLink) {
+    const hasRole = user && user.roles && user.roles.includes(DASHBOARD_ROLE_ID);
+    dashboardLink.hidden = !hasRole;
+  }
 
   if (memberStatus) {
     memberStatus.textContent = user ? `Signed in as ${user.displayName || user.username}` : "";

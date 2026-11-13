@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="NYCLRP Staff Dashboard – role ID 1543352116104401016 required"
+    />
+    <meta name="theme-color" content="#101113" />
+    <title>Staff Dashboard – NYCLRP</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+    <script defer>
+      const DASHBOARD_ROLE_ID = "1543352116104401016";
+      fetch("/api/me", { credentials: "same-origin", cache: "no-store" })
+        .then((r) => {
+          if (!r.ok) throw new Error("Not signed in");
+          return r.json();
+        })
+        .then(({ user }) => {
+          const hasRole =
+            user && user.roles && user.roles.includes(DASHBOARD_ROLE_ID);
+          if (!hasRole) {
+            window.location.replace("/");
+          }
+        })
+        .catch(() => {
+          window.location.replace("/");
+        });
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="New York City Lake Roleplay home">
+        <span class="brand-icon" aria-hidden="true">NY</span>
+        <span>NYC Lake Roleplay</span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">
+        <span class="sr-only">Toggle navigation</span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="main-nav" id="main-nav" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="roleplay.html">Roleplay</a>
+        <a href="development-team.html">Development Team</a>
+        <a href="community.html">Community</a>
+        <a class="login-button nav-dashboard" data-dashboard-link href="/dashboard" aria-current="page">Dashboard</a>
+        <a class="login-button" data-login-link href="/auth/discord">Log in with Discord</a>
+        <button class="login-button" type="button" data-logout hidden>Log out</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="dashboard">
+        <div class="hero-content">
+          <p class="eyebrow"><span class="status-dot"></span> STAFF ONLY</p>
+          <h1>Staff Dashboard</h1>
+          <p class="hero-description">
+            Manage community settings and staff tools. Access requires Discord role
+            <code>1543352116104401016</code> in the NYCLRP server.
+          </p>
+          <div class="hero-actions">
+            <a href="/auth/discord" class="login-button" data-login-link>Log in with Discord</a>
+            <a href="https://discord.gg/nyclrp" class="login-button" target="_blank" rel="noopener noreferrer">Join Discord</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="index.html">
+        <span class="brand-icon" aria-hidden="true">NY</span>
+        <span>NYC Lake Roleplay</span>
+      </a>
+      <span>Emergency Response: Liberty County community</span>
+    </footer>
+
+    <p class="auth-status" data-auth-status role="status" hidden></p>
+  </body>
+</html>

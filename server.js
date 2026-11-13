@@ -10,6 +10,7 @@ const SESSION_MAX_AGE_SECONDS = SESSION_LIFETIME_MS / 1000;
 const TEAM_MEMBER_COUNT = 2;
 const COMMUNITY_INVITE_CODE = "nyclrp";
 const COMMUNITY_GUILD_ID = "1475908093266100365";
+const REQUIRED_ROLE_ID = "1543352116104401016";
 const COMMUNITY_STATS_CACHE_TTL_MS = 5 * 60 * 1000;
 const OAUTH_STATE_LIFETIME_MS = 10 * 60 * 1000;
 const STATIC_FILES = new Map([
@@ -18,6 +19,8 @@ const STATIC_FILES = new Map([
   ["/roleplay.html", ["roleplay.html", "text/html; charset=utf-8"]],
   ["/development-team.html", ["development-team.html", "text/html; charset=utf-8"]],
   ["/community.html", ["community.html", "text/html; charset=utf-8"]],
+  ["/dashboard", ["dashboard.html", "text/html; charset=utf-8"]],
+  ["/dashboard.html", ["dashboard.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/script.js", ["script.js", "text/javascript; charset=utf-8"]],
   ["/default-avatar.svg", ["default-avatar.svg", "image/svg+xml"]],
@@ -473,11 +476,13 @@ function createServer({
             `Discord community membership lookup failed with status ${membershipResponse.status}.`,
           );
         }
+        let userRoles = [];
         if (membershipResponse.ok) {
           const membership = await membershipResponse.json();
           if (!membership || typeof membership !== "object" || Array.isArray(membership)) {
             throw new Error("Discord returned invalid community membership data.");
           }
+          userRoles = Array.isArray(membership.roles) ? membership.roles : [];
         }
         const isCommunityMember = membershipResponse.ok;
 
@@ -503,6 +508,7 @@ function createServer({
                 : discordUser.username,
             avatarUrl,
             isCommunityMember,
+            roles: userRoles,
           },
         });
 
