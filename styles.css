@@ -30,6 +30,10 @@ body {
   font-size: 14px;
 }
 
+body.home-page {
+  background: var(--background) url('background1.jpg') no-repeat center/cover fixed;
+}
+
 a {
   color: inherit;
 }
